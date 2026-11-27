@@ -3716,7 +3716,7 @@ function renderAll() {
   scheduleCssSync();
 }
 
-function setOut() { suiSource = generate(); setSuiEditor(); markAutosaveDirty(); scheduleLiveCheck(); dbg("setOut children=" + root.children.length + " kinds=[" + root.children.map(function(n){ return n.kind; }).join(",") + "]"); }
+function setOut() { suiSource = generate(); setSuiEditor(); markAutosaveDirty(); scheduleLiveCheck(); buildPickMap(); dbg("setOut children=" + root.children.length + " kinds=[" + root.children.map(function(n){ return n.kind; }).join(",") + "]"); }
 
 // ---- panel switching ------------------------------------------------------
 function switchLeft(t) {
@@ -3800,8 +3800,10 @@ function buildPickMap() {
             // element of its own, but its children do: they carry a
             // data-sui-id, so the block must consume those ids, or every
             // element after it is off by the number of the hidden children and
-            // the tree points at the wrong preview element.
-            if (n.peek) walk(n.peek, p, ownerTreePath, true);
+            // the tree points at the wrong preview element. The children are
+            // real model nodes, so a pick inside the block selects the element
+            // itself.
+            if (n.children) walk(n.children, p, ownerTreePath, inPeek);
             continue;
           }
           var pickPath = (n.kind === "treeitem" && ownerTreePath) ? ownerTreePath : p;
@@ -3822,11 +3824,16 @@ function buildPickMap() {
               pickMap.push({ t: "item", pg: pi, p: p, k: k });
             }
           } else if (n.kind === "text" && n.runs) {
-            // each run renders as a leaf plus a wrapper per bold/italic flag
-            (n.runs || []).forEach(function(r) {
-              var extra = 1 + (r.b ? 1 : 0) + (r.i ? 1 : 0);
-              for (var k = 0; k < extra; k++) pickMap.push({ t: inPeek ? "peek" : "n", pg: pi, p: p });
-            });
+            // A compact text element (`p "text"`) renders one element: its
+            // text run has no id of its own. The expanded form renders the run
+            // too, so it takes one id per run.
+            if (!(n.compact && textRunsPlain(n.runs))) {
+              // each run renders as a leaf plus a wrapper per bold/italic flag
+              (n.runs || []).forEach(function(r) {
+                var extra = 1 + (r.b ? 1 : 0) + (r.i ? 1 : 0);
+                for (var k = 0; k < extra; k++) pickMap.push({ t: inPeek ? "peek" : "n", pg: pi, p: p });
+              });
+            }
           } else if (n.kind === "table" && n.cols) {
             // caption is emitted as the table's first child when shown
             if (n.captionShow !== false && n.caption && n.caption.trim()) pickMap.push({ t: "sec", pg: pi, p: p }); // caption
@@ -4448,6 +4455,9 @@ function renderNodes(children, depth, parent, path) {
     var labelText;
     if (node.kind === "text") {
       var txt = (node.runs || []).map(function(r){ return r.text; }).join("");
+      // A `text "..."` element (the tag, not the rich text model) carries its
+      // content in the plain text field.
+      if (!node.runs && node.text) txt = node.text;
       labelText = (node.tag && node.tag !== "p" ? node.tag + " '" : "text ") + (txt ? txt.slice(0, 18) : "");
       if (node.tag && node.tag !== "p" && txt) labelText += "'";
     } else if (node.kind === "modal") {
@@ -4482,19 +4492,24 @@ function renderNodes(children, depth, parent, path) {
       labelText = "menu '" + (node.text || "") + "'";
     } else if (node.kind === "menuitem") {
       labelText = "item '" + (node.text || "") + "'";
-    } else if (node.raw && node.block) {
-      // A dynamic block (the body of an `if` or of a `list`) is kept as
-      // source: the tree shows it as one row.
-      labelText = node.block === "list" ? "list block" : "if block";
+    } else if (node.block) {
+      // A dynamic block (the body of an `if` or of a `list`): the tree shows
+      // its condition and lists the elements it contains.
+      labelText = node.block === "list"
+        ? ("list " + (node.item || "") + (node.item2 ? ", " + node.item2 : "") + " in " + (node.iterable || ""))
+        : ("if " + (node.cond || ""));
     } else {
       var treeName = treeNodeName(node);
       labelText = treeName || node.kind;
     }
     var typeChip = document.createElement("span");
     typeChip.className = "node-type";
-    typeChip.textContent = (node.kind === "text" && node.tag) ? node.tag : (node.raw && node.block ? node.block : node.kind);
+    typeChip.textContent = (node.kind === "text" && node.tag) ? node.tag : (node.block ? node.block : node.kind);
     typeChip.title = "Exact element type";
     row.appendChild(typeChip);
+    // The children of the `else` branch of a conditional block are marked, so
+    // the tree shows which branch an element belongs to.
+    if (node.else) labelText = "else " + labelText;
     lab.className = "node-label";
     var classSuffix = cls && cls !== labelText ? " ." + cls : "";
     lab.textContent = labelText + classSuffix + (node.component ? "  \u2022" : "");
@@ -6137,6 +6152,11 @@ function renderInspector() {
     finishInspector();
     return;
   }
+  if (nodes.some(function(m){ return m && m.block; })) {
+    box.insertAdjacentHTML("beforeend", '<div class="hint">This is a dynamic block: it renders the elements it contains when its condition is true. Select an element inside the block to edit it.</div>');
+    finishInspector();
+    return;
+  }
 
   // Exact-type banner: the element kind is always visible, independently of
   // the friendly label shown in the structure tree.
@@ -6268,7 +6288,7 @@ function renderInspector() {
   // EVERY selected element supports it, showing the shared value. Trees own
   // their title in Tree settings, so they never show the generic Content panel.
   var ownsContent = nodes.some(function(m){ return m.kind === "tree"; });
-  var capText = !ownsContent && allKindsHave(nodes, TEXT_KINDS);
+  var capText = !ownsContent && capHasText(nodes);
   var capSrc = !ownsContent && allKindsHave(nodes, SRC_KINDS);
   if (capText || capSrc) {
     var sec1 = document.createElement("div"); sec1.className = "ins-sec"; sec1.innerHTML = '<div class="ins-sec-h">Content</div>';
@@ -6744,6 +6764,17 @@ var TEXT_KINDS = { div:1, section:1, article:1, main:1, header:1, footer:1, nav:
   dropdown:1, dropdownitem:1, popover:1, drawer:1, splitter:1, pane:1, dropzone:1, errorboundary:1,
   timeline:1, timelineitem:1, emptystate:1, carousel:1, slide:1, stepper:1, step:1, commandbar:1, command:1,
   modal:1, modalbutton:1, menubar:1, menu:1, menuitem:1 };
+// capHasText reports whether the selection carries editable text. A `text "..."`
+// element (the tag) keeps its content in the plain text field, while the rich
+// text model (the same kind with runs) has its own editor.
+function capHasText(nodes) {
+  if (!nodes.length) return false;
+  return nodes.every(function(m){
+    if (!m) return false;
+    if (m.kind === "text") return !m.runs;
+    return !!TEXT_KINDS[m.kind];
+  });
+}
 var LINK_KINDS = { a:1 };
 var SRC_KINDS = { img:1, video:1, audio:1, iframe:1, pdfviewer:1 };
 // Flow-level shaping (display/flex/grid internals) only makes sense on
@@ -18654,7 +18685,10 @@ function attrsOf(n) {
       a += " class: " + n.classExpr;
     }
   } else if (n.class) a += " class: \"" + esc(n.class) + "\"";
-  if (n.styleExpr) a += " style: " + cssSafeExpr(n.styleExpr);
+  if (n.kind === "text" && n.runs) {
+    // A text element writes its own style: it merges the declarations of the
+    // source with the alignment and the size set in the inspector.
+  } else if (n.styleExpr) a += " style: " + cssSafeExpr(n.styleExpr);
   else if (n.style) a += " style: \"" + esc(n.style) + "\"";
   if (n.kind === "iframe") {
     if (n.srcAllow) a += " srcAllow: \"" + esc(n.srcAllow) + "\"";
@@ -18677,8 +18711,9 @@ function toSui(n, depth) {
     var indr = ""; for (var i = 0; i < depth; i++) indr += "\t";
     return indr + n.raw.split("\n").join("\n" + indr) + "\n";
   }
+  if (n.block) return blockToSui(n, depth);
   if (n.kind === "table" && n.cols) return tableToSui(n, depth);
-  if (n.kind === "list") return listToSui(n, depth);
+  if (n.kind === "list" && n.items) return listToSui(n, depth);
   if (n.kind === "text" && n.runs) return textToSui(n, depth);
   var ind = ""; for (var i = 0; i < depth; i++) ind += "\t";
   var line = ind + n.kind;
@@ -18690,6 +18725,36 @@ function toSui(n, depth) {
     for (var j = 0; j < n.children.length; j++) line += toSui(n.children[j], depth + 1);
     line += ind + "}\n";
   } else line += "\n";
+  return line;
+}
+// blockToSui emits a dynamic block (the body of an `if` or of a `list`) with
+// its children. The `then` branch comes first, the `else` branch after it: the
+// compiler numbers the preview ids in that order too. The branch of a child is
+// a flag, not a position, so deleting a child never moves it to the other
+// branch.
+function blockToSui(n, depth) {
+  function ind(level) { var s = ""; for (var i = 0; i < level; i++) s += "\t"; return s; }
+  var kids = n.children || [];
+  var line = "";
+  if (n.block === "list") {
+    line = ind(depth) + "list " + (n.item || "") + (n.item2 ? ", " + n.item2 : "") + " in " + (n.iterable || "");
+    if (n.key) line += " key: " + n.key;
+    line += " {\n";
+    for (var k = 0; k < kids.length; k++) line += toSui(kids[k], depth + 1);
+    line += ind(depth) + "}\n";
+    return line;
+  }
+  var hasElse = false;
+  for (var e = 0; e < kids.length; e++) if (kids[e].else) { hasElse = true; break; }
+  line = ind(depth) + "if " + (n.cond || "") + " {\n";
+  for (var i = 0; i < kids.length; i++) if (!kids[i].else) line += toSui(kids[i], depth + 1);
+  line += ind(depth) + "}";
+  if (hasElse) {
+    line += " else {\n";
+    for (var j = 0; j < kids.length; j++) if (kids[j].else) line += toSui(kids[j], depth + 1);
+    line += ind(depth) + "}";
+  }
+  line += "\n";
   return line;
 }
 function cellCovered(n, r, c) {
@@ -18811,13 +18876,33 @@ function runToSui(r) {
   if (r.i) s = "em { " + s + " }";
   return s;
 }
+function textRunsPlain(runs) {
+  for (var i = 0; i < (runs || []).length; i++) {
+    var r = runs[i] || {};
+    if (r.b || r.i || r.u || r.color || r.bg || r.font) return false;
+  }
+  return true;
+}
+// textStyleAttr emits the style of a text element: the declarations of the
+// source merged with the alignment and the size set in the inspector.
+function textStyleAttr(n) {
+  if (n.styleExpr) return " style: " + cssSafeExpr(n.styleExpr);
+  var decls = styleDeclMap(n.style || "");
+  if (n.align) decls["text-align"] = n.align;
+  if (n.size) decls["font-size"] = n.size;
+  var style = styleDeclStr(decls);
+  return style ? " style: \"" + esc(style) + "\"" : "";
+}
 function textToSui(n, depth) {
   function ind(level) { var s = ""; for (var i = 0; i < level; i++) s += "\t"; return s; }
-  var style = "";
-  if (n.align) style += "text-align: " + n.align + ";";
-  if (n.size) style += "font-size: " + n.size + ";";
-  var line = ind(depth) + (n.tag || "p") + (style ? ' style: "' + esc(style) + '"' : "") + attrsOf(n) + " {\n";
   var runs = n.runs || [];
+  // The compact form of the source is kept while the runs stay plain: the
+  // preview numbers the elements of the source, so the two shapes must agree.
+  if (n.compact && textRunsPlain(runs)) {
+    var txt = runs.map(function(r){ return r.text; }).join("");
+    return ind(depth) + (n.tag || "p") + " \"" + escText(txt) + "\"" + textStyleAttr(n) + attrsOf(n) + "\n";
+  }
+  var line = ind(depth) + (n.tag || "p") + textStyleAttr(n) + attrsOf(n) + " {\n";
   for (var i = 0; i < runs.length; i++) {
     line += ind(depth + 1) + runToSui(runs[i]) + "\n";
   }

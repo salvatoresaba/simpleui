@@ -3535,34 +3535,90 @@ func guiElementsFromNodesOpts(nodes []ViewNode, viewNames map[string]bool, keepB
 		if n.kind == "element" && n.elem != nil {
 			arr = pushArr(arr, guiElementFromOpts(n.elem, viewNames, keepBlockText))
 		} else if n.kind == "if" || n.kind == "list" {
-			arr = pushArr(arr, guiRawBlockFrom(n, viewNames))
+			arr = pushArr(arr, guiBlockFrom(n, viewNames))
 		}
 	}
 	return arr
 }
 
-// guiRawBlockFrom describes a dynamic block (the body of an `if` or of a
-// `list`).
+// guiBlockFrom describes a dynamic block (the body of an `if` or of a `list`)
+// as a real subtree of the design model.
 //
-// The designer has no visual editor for dynamic blocks, but dropping them
-// would silently delete content: the canonical source is kept in a raw node so
-// the SUI tab and the round-trip preserve it.
+// The block renders no element of its own, but its children do: they carry a
+// data-sui-id, so the block must not consume an id of its own. Giving the
+// children real model nodes (instead of a flat peek list) lets the designer
+// select, edit and delete the elements they contain.
 //
-// The block still renders its children in the preview and every child carries
-// a data-sui-id. The designer needs them to keep the tree and the preview
-// aligned: without them every element after the block would be off by the
-// number of the hidden children and the tree would point at the wrong preview
-// element.
-func guiRawBlockFrom(n *ViewNode, viewNames map[string]bool) JVal {
-	return JObj(
-		"raw", JStr(viewNodeSource(n, 0)),
-		"block", JStr(n.kind),
-		"peek", guiElementsFromNodePtrs(dynamicBlockNodes(n), viewNames),
+// The children keep their original shape (a `p "x"` stays one element), so the
+// ids of the preview stay aligned with the source the designer regenerates.
+func guiBlockFrom(n *ViewNode, viewNames map[string]bool) JVal {
+	o := JObj(
+		"kind", JStr("if"),
+		"block", JStr("if"),
+		"cond", JStr(""),
+		"children", JArr(),
+		"thenCount", JInt(0),
+		"elseCount", JInt(0),
+		"line", JInt(n.span.line),
 	)
+	if n.kind == "list" {
+		o.obj["kind"] = JStr("listblock")
+		o.obj["block"] = JStr("list")
+		o.obj["item"] = JStr(n.item)
+		o.obj["item2"] = JStr(n.item2)
+		o.obj["iterable"] = JStr("")
+		if n.iterable != nil {
+			o.obj["iterable"] = JStr(exprSource(n.iterable))
+		}
+		if n.key != nil {
+			o.obj["key"] = JStr(exprSource(n.key))
+		}
+	}
+	if n.cond != nil {
+		o.obj["cond"] = JStr(exprSource(n.cond))
+	}
+	thenNodes := derefViewNodes(n.then_)
+	elseNodes := derefViewNodes(n.else_)
+	if n.kind == "list" {
+		thenNodes = derefViewNodes(n.body)
+		elseNodes = nil
+	}
+	children := JArr()
+	for i := 0; i < len(thenNodes); i++ {
+		children = pushArr(children, guiBlockChildFrom(&thenNodes[i], viewNames, false))
+	}
+	for i := 0; i < len(elseNodes); i++ {
+		children = pushArr(children, guiBlockChildFrom(&elseNodes[i], viewNames, true))
+	}
+	o.obj["children"] = children
+	o.obj["thenCount"] = JInt(len(thenNodes))
+	o.obj["elseCount"] = JInt(len(elseNodes))
+	return o
+}
+
+// guiBlockChildFrom describes one child of a dynamic block: an element keeps
+// its original shape, a nested block becomes a block of its own. The `else`
+// flag tells the designer which branch the child belongs to: the branches are
+// not two lists, so deleting a child must not move it to the other one.
+func guiBlockChildFrom(n *ViewNode, viewNames map[string]bool, isElse bool) JVal {
+	if n == nil {
+		return JObj()
+	}
+	if n.kind == "element" && n.elem != nil {
+		o := guiElementFromOpts(n.elem, viewNames, true)
+		if isElse {
+			o.obj["else"] = JBool(true)
+		}
+		return o
+	}
+	if n.kind == "if" || n.kind == "list" {
+		return guiBlockFrom(n, viewNames)
+	}
+	return JObj()
 }
 
 // guiElementsFromNodePtrs is guiElementsFromNodes for the pointer slices the
-// dynamic blocks keep. The block keeps its original source, so its children
+// dynamic blocks keep. The block keeps its original shape, so its children
 // keep their original shape too.
 func guiElementsFromNodePtrs(nodes []*ViewNode, viewNames map[string]bool) JVal {
 	arr := JArr()
@@ -3574,23 +3630,10 @@ func guiElementsFromNodePtrs(nodes []*ViewNode, viewNames map[string]bool) JVal 
 		if n.kind == "element" && n.elem != nil {
 			arr = pushArr(arr, guiElementFromOpts(n.elem, viewNames, true))
 		} else if n.kind == "if" || n.kind == "list" {
-			arr = pushArr(arr, guiRawBlockFrom(n, viewNames))
+			arr = pushArr(arr, guiBlockFrom(n, viewNames))
 		}
 	}
 	return arr
-}
-
-// dynamicBlockNodes returns the nodes a dynamic block renders: the `then`
-// branch first and the `else` branch after it (the compiler numbers the
-// preview ids in that order), the body of a `list` once.
-func dynamicBlockNodes(n *ViewNode) []*ViewNode {
-	if n.kind == "if" {
-		out := make([]*ViewNode, 0, len(n.then_)+len(n.else_))
-		out = append(out, n.then_...)
-		out = append(out, n.else_...)
-		return out
-	}
-	return n.body
 }
 
 // isEventAttr reports whether an attribute name is an element event handler
@@ -4691,6 +4734,11 @@ func guiTextFrom(e *Element) (JVal, bool) {
 		"align", JStr(align),
 		"size", JStr(size),
 		"runs", runs,
+		// A block text element written as `p "text"` renders one element,
+		// while the expanded form (`p { text "text" }`) renders the text run
+		// too: the designer must know which shape the source uses, or the ids
+		// of the preview no longer match the ones of the model.
+		"compact", JBool(len(e.children) == 0),
 	), true
 }
 

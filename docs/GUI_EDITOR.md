@@ -408,10 +408,16 @@ the selection in the other direction too: picking an element in the preview
 selects its tree row. Either way the **inspector on the right** shows the
 selected element, and the selected row is brought into view in the tree.
 
-A **dynamic block** (the body of an `if` or of a `list`) has no rows of its
-own: the tree shows it as a single **if block** / **list block** row and
-picking one of its elements in the preview selects the element that contains
-the block.
+A **dynamic block** (the body of an `if` or of a `list`) has rows of its own: the
+tree shows it as an **if block** / **list block** row with its condition, and
+expands it to show the elements it contains. Those elements behave like any
+other element: picking one in the preview selects **that element**, not the
+block that contains it, so its text can be edited or removed from the
+inspector.
+
+The two branches of an `if` are kept apart: the elements of the `else` branch
+are marked with an `else` prefix and stay in the `else` branch even when an
+element of the `then` branch is deleted.
 
 ### Design tokens
 

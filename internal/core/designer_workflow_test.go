@@ -403,20 +403,28 @@ const designerWorkflowScript = `<script>
     step('inspector-ok');
 
     // 3. picking an element in the preview must select it in the tree and
-    //    show its inspector. An element inside a dynamic block has no row of
-    //    its own: the element that contains the block is selected instead.
-    var pick = Array.prototype.slice.call(doc.querySelectorAll('[data-sui-id]')).filter(function (e) {
+    //    show its inspector. An element inside a dynamic block has a row of
+    //    its own: the element itself is selected, not the block container.
+    //    The deepest match is the text node inside the if block: its parent
+    //    div holds the same text.
+    var picks = Array.prototype.slice.call(doc.querySelectorAll('[data-sui-id]')).filter(function (e) {
       return (e.textContent || '').indexOf('inside') >= 0;
-    })[0];
+    });
+    var pick = picks.length ? picks[picks.length - 1] : null;
     if (!pick) throw new Error('the preview has no pickable element');
     pick.click();
     await wait(700);
-    if (!document.querySelectorAll('#nodes .node.sel').length) {
+    var selected = document.querySelectorAll('#nodes .node.sel');
+    if (!selected.length) {
       throw new Error('the element picked in the preview is not selected in the tree');
+    }
+    var selectedText = (selected[0].textContent || '').replace(/\s+/g, ' ');
+    if (selectedText.indexOf('inside') < 0) {
+      throw new Error('the tree selects the wrong element: ' + selectedText.slice(0, 160));
     }
     var inspector2 = document.getElementById('inspector');
     var inspectorText2 = inspector2 ? (inspector2.textContent || '').replace(/\s+/g, ' ') : '';
-    if (inspectorText2.indexOf('card') < 0) {
+    if (inspectorText2.indexOf('note') < 0) {
       throw new Error('the inspector does not show the element picked in the preview: ' + inspectorText2.slice(0, 160));
     }
     step('reverse-ok');

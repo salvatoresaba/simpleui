@@ -423,10 +423,16 @@ un elemento nell'anteprima seleziona la sua riga nell'albero. In entrambi i
 casi l'**inspector a destra** mostra l'elemento selezionato e la riga
 selezionata viene portata in vista nell'albero.
 
-Un **blocco dinamico** (il corpo di un `if` o di una `list`) non ha righe
-proprie: l'albero lo mostra come una singola riga **if block** / **list
-block**, e scegliere uno dei suoi elementi nell'anteprima seleziona l'elemento
-che contiene il blocco.
+Un **blocco dinamico** (il corpo di un `if` o di una `list`) ha righe
+proprie: l'albero lo mostra come una riga **if block** / **list block** con la
+sua condizione e la espande per mostrare gli elementi che contiene. Questi
+elementi si comportano come gli altri: sceglierne uno nell'anteprima seleziona
+**quell'elemento**, non il blocco che lo contiene, così il suo testo può essere
+modificato o rimosso dall'inspector.
+
+I due rami di un `if` restano separati: gli elementi del ramo `else` sono
+marcati con il prefisso `else` e rimangono nel ramo `else` anche quando un
+elemento del ramo `then` viene cancellato.
 
 ### Design token
 
