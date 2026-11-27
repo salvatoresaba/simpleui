@@ -39,6 +39,11 @@ not add a dependency to the root module.
   and the buttons of the file (play/pause, stop/start again, cancel), all on
   one line; under it a thin bar with the bytes. The **+** button of the card
   adds a row: every file that is added gets its own row.
+- **The first row is always there.** The row where the operator types the URL
+  is created when the app starts, before the backend answers: the field is
+  there even when the backend is not reachable yet, and the **+** button always
+  adds a row. The list of the rows is never inside a branch of a conditional
+  block, so a row can never disappear with a branch.
 - **The URL is locked while the file downloads.** The URL of a row can be
   changed only before the download starts or after the file has been stopped.
   The stop button (■) turns the URL back into an editable box: the operator
@@ -133,6 +138,14 @@ go run . --port 8090 --web-dir ../public --files-dir ../files --out-dir ../downl
 Then open <http://127.0.0.1:8090/>. The backend creates a deterministic
 24 MiB sample file (`files/sample.bin`) on first start, so the example works
 offline and always produces the same bytes.
+
+**The example needs the backend.** The GUI calls `http://127.0.0.1:8090`, so
+it must be served by the download manager itself: `run.ps1` does exactly that
+(the backend serves the compiled app from the same origin). The **desktop**
+target (`simpleui build app.sui --target desktop`) compiles the same GUI into
+an executable that serves it on its own port: the GUI opens and the row of the
+target is there, but the download cannot work, because the backend of the
+example is a separate program that the desktop build does not start.
 
 ### The flags of the CLI
 
@@ -332,6 +345,9 @@ state filesSignature = ""
 # number of parts downloaded at the same time. The app starts with them, the
 # operator can change them in the settings panel.
 async fn loadConfig() -> null {
+	# The first row is there before the backend answers: the operator can type
+	# the URL of the file to download even when the backend is not there yet.
+	ensureFirstTarget()
 	body, err = http.get("http://127.0.0.1:8090/api/config")
 	if err != null {
 		notifyError("backend unreachable: " + err)
@@ -342,12 +358,15 @@ async fn loadConfig() -> null {
 		notifyError("invalid response: " + jerr)
 		return
 	}
-	if len(targets) == 0 {
-		# The first target takes the URL of the command line.
-		addTarget()
+	# The URL of the command line fills the first row, but only when the row is
+	# still empty: a row that already holds a file keeps its own URL. The rows
+	# can be gone (the operator can cancel them), so the list is checked.
+	if len(targets) > 0 {
 		let first = targetById(str(targets[0]["id"]))
-		setTarget(str(first["id"]), "url", str(cfg["url"]))
-		syncTargetName(str(first["id"]))
+		if str(first["fileId"]) == ""  and  str(first["url"]) == "" {
+			setTarget(str(first["id"]), "url", str(cfg["url"]))
+			syncTargetName(str(first["id"]))
+		}
 	}
 	let cfgSize = str(cfg["partSize"])
 	if cfgSize != "" {
@@ -463,6 +482,15 @@ fn removeTarget(id: string) -> null {
 # Add a row: the operator types the URL in it and presses play.
 fn addTarget() -> null {
 	targets = append(targets, newTarget())
+}
+
+# The first row of the targets: it is always there, so the operator has a URL
+# to type in even when the backend does not answer.
+fn ensureFirstTarget() -> null {
+	if len(targets) > 0 {
+		return
+	}
+	addTarget()
 }
 
 # The name of the file follows the URL, but only until the operator changes
@@ -1189,6 +1217,9 @@ async fn retryFailedParts() -> null {
 }
 
 async fn boot() -> null {
+	# The first row of the targets is there from the start: the operator has a
+	# URL to type in even if the backend never answers.
+	ensureFirstTarget()
 	interval(500, refresh)
 	loadConfig()
 }
@@ -1257,28 +1288,31 @@ view main {
 			# downloaded, or that is being downloaded, has one.
 			button "+" onClick: addTarget class: "btn-icon btn-add btn-icon-sm" tooltip: "Add a target"
 		}
+		# The list of the targets is always rendered: a target that does not
+		# exist yet simply has no row. The hint tells the operator what to do
+		# when there is no row at all. The list never lives inside a branch of
+		# a conditional block: the rows would disappear with the branch.
 		if len(targets) == 0 {
 			p "Add a target: paste the URL and press play." class: "muted"
-		} else {
-			list t in targets key: t["id"] {
-				row class: "target-row" {
-					# The URL of a target cannot be changed once its download
-					# has started: the stop button frees it.
-					if targetLocked(t) {
-						p "{t["url"]}" class: "target-url target-locked" tooltip: "The URL cannot be changed while the file is downloading"
-					} else {
-						input "URL" value: t["url"] placeholder: "https://example.com/file.bin" onInput: onTargetUrl class: "target-url"
-					}
-					input "Save as" value: t["name"] placeholder: "download.bin" onInput: onTargetName class: "target-name"
-					button "{prioIcon(t["priority"])}" onClick: onTargetPriority class: "btn-icon btn-prio" tooltip: "{prioLabel(t["priority"])}"
-					button "{playIcon(t)}" onClick: onTargetPlay class: "btn-icon btn-play" tooltip: "{playHint(t)}"
-					button "{stopIcon(t)}" onClick: onTargetStop class: "btn-icon btn-stop" tooltip: "{stopHint(t)}"
-					button "✕" onClick: onTargetCancel class: "btn-icon btn-cancel" tooltip: "Cancel this target"
+		}
+		list t in targets key: t["id"] {
+			row class: "target-row" {
+				# The URL of a target cannot be changed once its download
+				# has started: the stop button frees it.
+				if targetLocked(t) {
+					p "{t["url"]}" class: "target-url target-locked" tooltip: "The URL cannot be changed while the file is downloading"
+				} else {
+					input "URL" value: t["url"] placeholder: "https://example.com/file.bin" onInput: onTargetUrl class: "target-url"
 				}
-				row class: "target-foot" {
-					progress value: t["percent"] max: 100 class: "bar-target"
-					p "{t["received"]} / {t["total"]}" class: "target-bytes"
-				}
+				input "Save as" value: t["name"] placeholder: "download.bin" onInput: onTargetName class: "target-name"
+				button "{prioIcon(t["priority"])}" onClick: onTargetPriority class: "btn-icon btn-prio" tooltip: "{prioLabel(t["priority"])}"
+				button "{playIcon(t)}" onClick: onTargetPlay class: "btn-icon btn-play" tooltip: "{playHint(t)}"
+				button "{stopIcon(t)}" onClick: onTargetStop class: "btn-icon btn-stop" tooltip: "{stopHint(t)}"
+				button "✕" onClick: onTargetCancel class: "btn-icon btn-cancel" tooltip: "Cancel this target"
+			}
+			row class: "target-foot" {
+				progress value: t["percent"] max: 100 class: "bar-target"
+				p "{t["received"]} / {t["total"]}" class: "target-bytes"
 			}
 		}
 	}
@@ -1539,6 +1573,7 @@ Measured against this example (backend and GUI, not just the documentation):
 | One-piece mode | the job has a single part and the parts panel is not shown |
 | Action button | the header button pauses and resumes the whole download; the button of a row acts on its own file only |
 | Target rows | one row per file: the URL, the name, the priority icon and the buttons of that file, all on one line |
+| The first row | the URL field is there when the app starts, even when the backend does not answer |
 | The + button | it adds a row for another file: every file that is added has its own row |
 | Locked URL | the URL of a row is an editable box only before the download starts and after the file has been stopped |
 | Stop | the file becomes `stopped`, the URL becomes editable again and the operator can start the file with another URL |
