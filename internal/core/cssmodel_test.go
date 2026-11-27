@@ -1,5 +1,7 @@
 package core
 
+import "os"
+import "path/filepath"
 import "strings"
 import "testing"
 
@@ -187,6 +189,52 @@ func TestAnalyzeOverrideWithTheSameElement(t *testing.T) {
 	}
 	if !found {
 		t.Errorf("expected the padding override to be reported: %+v", probs)
+	}
+}
+
+// TestAnalyzeNoFalseOverrideInExamples checks the CSS of the examples in the
+// repository: the designer must not report an override that cannot happen.
+//
+// The download manager was the visible case: the variants of the row (.row
+// with .part-row or with .file-row) never apply to the same element, but the
+// analysis reported eight of them.
+func TestAnalyzeNoFalseOverrideInExamples(t *testing.T) {
+	// The tests of this package run with the repository root as working
+	// directory.
+	var files []string
+	err := filepath.WalkDir("examples", func(path string, d os.DirEntry, err error) error {
+		if err != nil {
+			return err
+		}
+		if !d.IsDir() && strings.HasSuffix(path, ".sui") {
+			files = append(files, path)
+		}
+		return nil
+	})
+	if err != nil {
+		t.Fatalf("walk examples: %v", err)
+	}
+	if len(files) == 0 {
+		t.Skip("no examples found")
+	}
+	for _, file := range files {
+		raw, err := os.ReadFile(file)
+		if err != nil {
+			t.Fatalf("read %s: %v", file, err)
+		}
+		prog, dl := ParseSource(string(raw), file)
+		if dl.HasErrors() {
+			continue // the example checks report the parse errors on their own
+		}
+		if len(prog.css) == 0 {
+			continue
+		}
+		probs := AnalyzeCss(ParseCss(strings.Join(prog.css, "\n")), map[string]bool{})
+		for _, p := range probs {
+			if p.kind == "override" {
+				t.Errorf("%s: unexpected override: %s (line %d)", file, p.message, p.line)
+			}
+		}
 	}
 }
 
