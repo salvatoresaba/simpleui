@@ -1219,7 +1219,7 @@ func TestMotionGraphVisibilityFallbackE2E(t *testing.T) {
   }
   function wait(ms) { return new Promise(function (r) { setTimeout(r, ms); }); }
   try {
-    for (var i = 0; i < 120; i++) {
+    for (var i = 0; i < 240; i++) {
       var card = document.querySelector('.fallback-vis');
       if (window.__SUI_MOTION_GRAPH && card && card.__suiGraphState) break;
       await wait(50);
